@@ -72,7 +72,7 @@ jobs:
             const originalTitle = context.payload.pull_request.title;
 
             const match = originalTitle.match(/(TEST-\d+)\s*:/i);
-            onst prefix = match ? `${match[1]}:` : '';
+            const prefix = match ? `${match[1]}:` : '';
 
             const title = `${prefix} Cherry-pick from PR #${prNumber}`;
             const body = `This PR cherry-picks commit(s) from #${prNumber} into \`${baseBranch}\`.`;
