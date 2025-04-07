@@ -1,0 +1,61 @@
+name: Cherry-pick PR commits to feature branch
+
+on: 
+  pull_request:
+    branches:
+      - dev
+    types: [closed]
+
+jobs:
+  cherry-pick:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Cherry-pick and create branch
+        id: cherry
+        run: |
+          COMMIT_SHA=${{ github.event.pull_request.merge_commit_sha }}
+          BASE_BRANCH=feature-branch-name  # change as needed
+          CHERRY_BRANCH=cherry-pick-${{ github.event.pull_request.number }}
+
+          git checkout $BASE_BRANCH
+          git pull origin $BASE_BRANCH
+          git checkout -b $CHERRY_BRANCH
+          git cherry-pick -x $COMMIT_SHA
+          git push origin $CHERRY_BRANCH
+
+          echo "cherry_branch=$CHERRY_BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request using GitHub Script
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const cherryBranch = '${{ steps.cherry.outputs.cherry_branch }}';
+            const baseBranch = 'feature-branch-name'; // update if dynamic
+            const prNumber = context.payload.pull_request.number;
+
+            const title = `Cherry-pick from PR #${prNumber}`;
+            const body = `This PR cherry-picks commit(s) from #${prNumber}.`;
+
+            const response = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              head: cherryBranch,
+              base: baseBranch,
+              body: body,
+            });
+
+            core.info(`Pull request created: ${response.data.html_url}`);
