@@ -62,7 +62,10 @@ jobs:
             });
 
       - name: Create Pull Request using GitHub Script
+        if: steps.cherry.outputs.has_conflicts == 'false'
         uses: actions/github-script@v6
+        env:
+          CHERRY_BRANCH: ${{ steps.cherry.outputs.cherry_branch }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -84,6 +87,15 @@ jobs:
               head: cherryBranch,
               base: baseBranch,
               body: body,
+            });
+
+            const cherryPickPRNumber = response.data.number;
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: cherryPickPRNumber,
+              labels: ['cherry-pick']
             });
 
             console.log(`Pull request created: ${response.data.html_url}`);
