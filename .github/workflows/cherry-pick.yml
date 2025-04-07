@@ -29,9 +29,8 @@ jobs:
           BASE_BRANCH=main
           CHERRY_BRANCH=cherry-pick-${{ github.event.pull_request.number }}
 
-          git checkout $BASE_BRANCH
-          git pull origin $BASE_BRANCH
-          git checkout -b $CHERRY_BRANCH
+          git fetch origin 
+          git checkout -b $CHERRY_BRANCH origin/$BASE_BRANCH
           git cherry-pick -x $COMMIT_SHA
           git push origin $CHERRY_BRANCH
 
