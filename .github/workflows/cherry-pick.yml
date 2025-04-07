@@ -36,10 +36,30 @@ jobs:
 
           git fetch origin 
           git checkout -b $CHERRY_BRANCH origin/$BASE_BRANCH
-          git cherry-pick -x $BASE_SHA..$HEAD_SHA
+          
+          if ! git cherry-pick -x $BASE_SHA..$HEAD_SHA; then
+            echo "has_conflicts=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           git push origin $CHERRY_BRANCH
 
           echo "cherry_branch=$CHERRY_BRANCH" >> $GITHUB_OUTPUT
+          echo "has_conflicts=false" >> $GITHUB_OUTPUT
+
+      - name: Comment on original PR if merge conflicts
+        if: steps.cherry.outputs.has_conflicts == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: "❗️ Cherry-pick to `main` failed due to merge conflicts.",
+            });
 
       - name: Create Pull Request using GitHub Script
         uses: actions/github-script@v6
@@ -49,8 +69,12 @@ jobs:
             const cherryBranch = '${{ steps.cherry.outputs.cherry_branch }}';
             const baseBranch = 'main';
             const prNumber = context.payload.pull_request.number;
+            const originalTitle = context.payload.pull_request.title;
 
-            const title = `Cherry-pick from PR #${prNumber}`;
+            const match = originalTitle.match(/(TEST-\d+)\s*:/i);
+            onst prefix = match ? `${match[1]}:` : '';
+
+            const title = `${prefix} Cherry-pick from PR #${prNumber}`;
             const body = `This PR cherry-picks commit(s) from #${prNumber} into \`${baseBranch}\`.`;
 
             const response = await github.rest.pulls.create({
@@ -62,4 +86,4 @@ jobs:
               body: body,
             });
 
-            core.info(`Pull request created: ${response.data.html_url}`);
+            console.log(`Pull request created: ${response.data.html_url}`);
