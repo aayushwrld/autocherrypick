@@ -29,13 +29,14 @@ jobs:
       - name: Cherry-pick and create branch
         id: cherry
         run: |
-          COMMIT_SHA=${{ github.event.pull_request.merge_commit_sha }}
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
           BASE_BRANCH=main
           CHERRY_BRANCH=cherry-pick-${{ github.event.pull_request.number }}
 
           git fetch origin 
           git checkout -b $CHERRY_BRANCH origin/$BASE_BRANCH
-          git cherry-pick -x -m 1 $COMMIT_SHA
+          git cherry-pick -x $BASE_SHA..$HEAD_SHA
           git push origin $CHERRY_BRANCH
 
           echo "cherry_branch=$CHERRY_BRANCH" >> $GITHUB_OUTPUT
