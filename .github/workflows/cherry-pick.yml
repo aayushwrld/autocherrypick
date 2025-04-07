@@ -1,4 +1,4 @@
-name: Cherry-pick PR commits to feature branch
+name: Cherry-pick PR commits to main
 
 on: 
   pull_request:
@@ -26,7 +26,7 @@ jobs:
         id: cherry
         run: |
           COMMIT_SHA=${{ github.event.pull_request.merge_commit_sha }}
-          BASE_BRANCH=feature-branch-name  # change as needed
+          BASE_BRANCH=main
           CHERRY_BRANCH=cherry-pick-${{ github.event.pull_request.number }}
 
           git checkout $BASE_BRANCH
@@ -43,11 +43,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const cherryBranch = '${{ steps.cherry.outputs.cherry_branch }}';
-            const baseBranch = 'feature-branch-name'; // update if dynamic
+            const baseBranch = 'main';
             const prNumber = context.payload.pull_request.number;
 
             const title = `Cherry-pick from PR #${prNumber}`;
-            const body = `This PR cherry-picks commit(s) from #${prNumber}.`;
+            const body = `This PR cherry-picks commit(s) from #${prNumber} into \`${baseBranch}\`.`;
 
             const response = await github.rest.pulls.create({
               owner: context.repo.owner,
