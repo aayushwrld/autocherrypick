@@ -32,6 +32,7 @@ jobs:
           HEAD_SHA=${{ github.event.pull_request.head.sha }}
           BASE_BRANCH=main
           CHERRY_BRANCH=cherry-pick-${{ github.event.pull_request.number }}
+
           git fetch origin 
           git checkout -b $CHERRY_BRANCH origin/$BASE_BRANCH
           
@@ -39,9 +40,11 @@ jobs:
             echo "has_conflicts=true" >> $GITHUB_OUTPUT
             exit 0
           fi
+
           git push origin $CHERRY_BRANCH
           echo "cherry_branch=$CHERRY_BRANCH" >> $GITHUB_OUTPUT
           echo "has_conflicts=false" >> $GITHUB_OUTPUT
+
       - name: Comment on original PR if merge conflicts
         if: steps.cherry.outputs.has_conflicts == 'true'
         uses: actions/github-script@v6
@@ -55,6 +58,7 @@ jobs:
               issue_number: prNumber,
               body: "❗️ Cherry-pick to `main` failed due to merge conflicts.",
             });
+
       - name: Create Pull Request using GitHub Script
         if: steps.cherry.outputs.has_conflicts == 'false'
         uses: actions/github-script@v6
@@ -67,10 +71,12 @@ jobs:
             const baseBranch = 'main';
             const prNumber = context.payload.pull_request.number;
             const originalTitle = context.payload.pull_request.title;
+
             const match = originalTitle.match(/(TEST-\d+)\s*:/i);
             const prefix = match ? `${match[1]}:` : '';
             const title = `${prefix} Cherry-pick from PR #${prNumber}`;
             const body = `This PR cherry-picks commit(s) from #${prNumber} into \`${baseBranch}\`.`;
+
             const response = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -79,6 +85,7 @@ jobs:
               base: baseBranch,
               body: body,
             });
+
             const cherryPickPRNumber = response.data.number;
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -86,4 +93,5 @@ jobs:
               issue_number: cherryPickPRNumber,
               labels: ['cherry-pick']
             });
+
             console.log(`Pull request created: ${response.data.html_url}`);
